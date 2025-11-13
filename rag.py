@@ -2,6 +2,7 @@ from configparser import SectionProxy
 from uuid import uuid4
 from dotenv import load_dotenv
 from pathlib import Path
+import os
 
 # Core LangChain community modules
 from langchain_community.document_loaders import UnstructuredURLLoader
@@ -16,6 +17,8 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 load_dotenv()
+
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
 
 # Constants
 CHUNK_SIZE = 1000
