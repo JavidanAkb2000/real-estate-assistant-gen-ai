@@ -4,7 +4,25 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 
-# Core LangChain community modules
+# --- Import Streamlit safely (only for deployed mode) ---
+try:
+    import streamlit as st
+except ModuleNotFoundError:
+    st = None
+
+# Load environment variables
+load_dotenv()
+
+# --- Secure API key loading ---
+if st:
+    GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
+else:
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    raise ValueError("❌ GROQ_API_KEY not found. Set it in .env or Streamlit Secrets.")
+
+# --- LangChain modules ---
 from langchain_community.document_loaders import UnstructuredURLLoader
 from langchain_community.vectorstores import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -16,11 +34,7 @@ from langchain_core.runnables import RunnablePassthrough
 # Text splitter (new subpackage)
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-load_dotenv()
-
-GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", os.getenv("GROQ_API_KEY"))
-
-# Constants
+# --- Constants ---
 CHUNK_SIZE = 1000
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 VECTORSTORE_DIR = Path(__file__).parent / "resources/vectorstore"
@@ -33,7 +47,12 @@ vector_store = None
 def initialize_components():
     global llm, vector_store
     if llm is None:
-        llm = ChatGroq(model='openai/gpt-oss-20b', temperature=0.9, max_tokens=500)
+        llm = ChatGroq(
+            model='openai/gpt-oss-20b',
+            temperature=0.9,
+            max_tokens=500,
+            api_key=GROQ_API_KEY  # ✅ Pass the key explicitly
+        )
 
     if vector_store is None:
         ef = HuggingFaceEmbeddings(
@@ -118,10 +137,10 @@ Answer:"""
 
     # Create chain
     chain = (
-            {"context": lambda x: context, "question": RunnablePassthrough()}
-            | prompt
-            | llm
-            | StrOutputParser()
+        {"context": lambda x: context, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
     )
 
     answer = chain.invoke(query)
@@ -138,6 +157,6 @@ if __name__ == '__main__':
     for status in process_urls(urls):
         print(status)
 
-    answer, sources = generate_answer('Tell me what was the 30 year fixed mortagate rate along with the date?')
+    answer, sources = generate_answer('Tell me what was the 30 year fixed mortgage rate along with the date?')
     print(f"\nAnswer: {answer}")
     print(f"\nSources: {sources}")
