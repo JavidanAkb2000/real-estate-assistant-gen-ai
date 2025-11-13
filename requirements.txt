@@ -7,5 +7,8 @@ sentence-transformers
 requests
 beautifulsoup4
 python-dotenv
-groq
-openai
+unstructured
+unstructured[html]
+pdfminer.six
+lxml
+playwright
